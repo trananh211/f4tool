@@ -15,7 +15,6 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Route::get('/admin','AdminController@login');
 Route::match(['get', 'post'], '/admin','AdminController@login');
 
 Route::group(['middleware' => ['auth']], function() {
@@ -27,6 +26,17 @@ Route::group(['middleware' => ['auth']], function() {
    //shopify spy
    Route::get('/admin/shopify', 'AdminController@getSpyShopify');
    Route::get('/admin/shopify-give-content/{domain}/{page}','AdminController@shopifyGiveContent');
+
+   //woocommerce api
+    Route::get('/woo/woocommerce', 'WooController@getIndex');
+    Route::get('/admin/add-new-woo-store','WooController@newStore');
+    Route::match(['get', 'post'], '/woo/form-add-new-store', 'WooController@addNewStore');
+
+    Route::get('/woo/dashboard-store/{store_id}','WooController@getDashboardStore');
+    Route::get('/woo/order','WooController@getOderStore');
+//    excel upload + tracking number + production
+    Route::get('/woo/production','WooController@getProduction');
+    Route::post('/woo/excel-upload', 'WooController@excelUploadPost')->name('excel.upload.post');
 
 });
 

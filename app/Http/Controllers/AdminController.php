@@ -10,6 +10,7 @@ use App\User; // this to add User Model
 use Illuminate\Support\Facades\Hash; // this to check Hash Password
 use Illuminate\Support\Facades\DB;
 
+
 class AdminController extends Controller
 {
     public function login(Request $request)
@@ -32,14 +33,6 @@ class AdminController extends Controller
 
     public function dashboard()
     {
-    	// if (Session::has('adminSession'))
-    	// {
-    	// 	return view('admin/dashboard');
-    	// } 
-    	// else 
-    	// {
-    	// 	return redirect('admin')->with('error','Bạn cần đăng nhập trước khi truy cập');
-    	// }
     	return view('admin.dashboard');
     }
 
@@ -116,5 +109,7 @@ class AdminController extends Controller
         $body = str_replace('href="/products','href="'.$domain.'/products',$html);
         echo $body;
     }
+
+
 
 }
