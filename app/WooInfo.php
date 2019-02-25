@@ -7,6 +7,7 @@ use Session;
 use Automattic\WooCommerce\Client;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class WooInfo extends Model
 {
@@ -47,6 +48,7 @@ class WooInfo extends Model
         if ($info)
         {
             $array = [];
+            $array['woo_id'] = $store_id;
             $array['woo_name'] = $info->woo_name;
             $array['woo_link'] = $info->woo_link;
             $array['consumer_key'] = $info->consumer_key;
@@ -121,13 +123,26 @@ class WooInfo extends Model
         $info = WooInfo::getSessionStore();
         if ($info)
         {
+            $yesterday = date("Y-m-d", strtotime( '-1 days' ));
             $woocommerce = WooInfo::getConnectStore($info['woo_link'], $info['consumer_key'], $info['consumer_secret']);
+            $from = "".$yesterday."T00:01:00Z";
+            $to   = "".$yesterday."T23:59:58Z";
+
+//            $from = "2019-01-05T00:01:00Z";
+//            $to   = "2019-01-06T23:59:58Z";
+            $per_page = '10';
             $data = [
-//                'status' => 'failed',
-//                'order by' => 'id',
-//                'order'   => 'DESC',
+                'status' => array('processing','on-hold'),
+                'order' => 'asc',
+                'per_page' => $per_page,
+                'after' => $from,
+                'before' => $to
+
             ];
             $orders = $woocommerce->get('orders',$data);
+            echo "<pre>";
+            print_r($orders);
+            die();
             return view('/woo/order')->with(compact('orders'));
         }
         else
@@ -143,6 +158,10 @@ class WooInfo extends Model
         $str_move_fail = '';
         $str_fail = '';
         $str_uploaded = '';
+        $session = false;
+        if (\Session::has('woo_store')) {
+            $session = \Session::get('woo_store');
+        }
         //kiểm tra xem có tồn tại file upload hay không
         if($request->hasFile('excel_file')) {
             $allowedfileExtension=['csv','xls','xlsx'];
@@ -161,6 +180,7 @@ class WooInfo extends Model
             //kiểm tra nếu đúng định dạng
             if (sizeof($files) > 0)
             {
+
                 $title = $request->excel_title;
                 $note = $request->excel_note;
                 $userId = Auth::user()->id;
@@ -170,13 +190,16 @@ class WooInfo extends Model
                     $date = date("Y_m_d_His");
                     $file_name = $file->getClientOriginalName();
                     $name=$date.'_'.$file_name;
+                    $path = public_path().'/files/'.$name;
                     if ($file->move(public_path().'/files/', $name))
                     {
                         $str_uploaded .= $file_name.", ";
                         $data[] = array(
                             'name' => $name,
+                            'path' => $path,
                             'title' => $title,
                             'note' => $note,
+                            'woo_info_id' => $session['woo_id'],
                             'user_id' => $userId,
                             'user_name' => $user_name,
                             'created_at' => date("Y-m-d H:i:s"),
@@ -208,6 +231,23 @@ class WooInfo extends Model
                 \Session::flash('error', 'Fail to upload. Only accept csv, xls, xlsx file. Wrong extension file : '.$str_fail);
             }
         }
+    }
+
+    /*Ham cron job lay order luu vao database */
+    public function getOrderNew()
+    {
+        $lst_store = WooInfo::whereStatus(1);
+        if (!empty($lst_store))
+        {
+
+            $message = 'Ton tai store';
+        }
+        else
+        {
+            $message = 'Khong ton tai store nao';
+        }
+
+        Log::info($message);
     }
 
 }

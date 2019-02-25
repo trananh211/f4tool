@@ -16,7 +16,7 @@
 
             <div class="row-fluid">
                 {{--hien thi form upload file excel--}}
-                <div class="span6">
+                <div class="span3">
                     <div class="widget-box">
                         <div class="widget-title"> <span class="icon"> <i class="icon-align-justify"></i> </span>
                             <h5>Form Elements</h5>
@@ -26,22 +26,16 @@
                                   enctype="multipart/form-data">
                                 {{ csrf_field() }}
                                 <div class="control-group">
-                                    <label class="control-label">File upload input</label>
-                                    <div class="controls css-upload-file">
-                                        <input type="file" name="excel_file[]" multiple/>
-                                    </div>
+                                    File upload input
+                                    <input type="file" class="css-upload-file" name="excel_file[]" multiple/>
                                 </div>
                                 <div class="control-group">
-                                    <label class="control-label">Tittle:</label>
-                                    <div class="controls">
-                                        <input type="text" class="span11" name="excel_title">
-                                        <span class="help-block">Description field</span> </div>
+                                    Tittle:
+                                    <input type="text" class="span11" name="excel_title">
                                 </div>
                                 <div class="control-group">
-                                    <label class="control-label">Note</label>
-                                    <div class="controls">
-                                        <textarea class="span11" name="excel_note"></textarea>
-                                    </div>
+                                    Note
+                                    <textarea class="span11" name="excel_note"></textarea>
                                 </div>
                                 <div class="form-actions">
                                     <button type="submit" class="btn btn-success">Upload</button>
@@ -53,7 +47,7 @@
                 {{--End hien thi form upload file excel--}}
 
                 {{--Hien thi danh sach up load file gan day nhat--}}
-                <div class="span6">
+                <div class="span9">
                     <div class="widget-box">
                         <div class="widget-title"><span class="icon"> <i class="icon-th"></i> </span>
                             <h5>Action tracking number - Last 30 days ago</h5>
@@ -75,11 +69,25 @@
                                     @foreach($files as $key => $file)
                                         <tr>
                                             <td>{{ ++$key }}</td>
-                                            <td>{{ $file->name }}</td>
+                                            <td title="{{ $file->name }}">{{ str_limit($file->name,16,'....') }}</td>
                                             <td>{{ $file->title }}</td>
                                             <td title="{{ $file->note }}">{{ str_limit($file->note,20,'....') }}</td>
                                             <td class="center">{{ $file->created_at }}</td>
-                                            <td class="center">{{ $file->status }}</td>
+                                            <td class="center">
+                                                @switch($file->status)
+                                                    @case (1)
+                                                        <span class="label label-success">Success</span>
+                                                        @break
+                                                    @case (2)
+                                                        <span class="label label-important">Error File</span>
+                                                        @break
+                                                    @case (3)
+                                                        <span class="label label-important">Wrong Title Excel</span>
+                                                        @break
+                                                    @default
+                                                        <span class="label">Uploaded</span>
+                                                @endswitch
+                                            </td>
                                         </tr>
                                     @endforeach
                                 @else

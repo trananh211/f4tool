@@ -61,15 +61,27 @@ class WooController extends Controller
         }
     }
 
+    /*Order*/
     public function getOderStore()
     {
         $woo_info = new WooInfo();
-        return $woo_info->getOderStore();
+        $woo_info->getOrderNew();
+//        return $woo_info->getOderStore();
     }
+
+    /*Ham cron job lay order luu vao database */
+    public function getOrderNew()
+    {
+        $woo_info = new WooInfo();
+        return $woo_info->getOrderNew();
+    }
+
+    /*End Order*/
 
     public function getProduction()
     {
-//        GetTrackingNumberForDues::dispatch('thong bao hay check ngay di');
+        GetTrackingNumberForDues::dispatch('thong bao hay check ngay di');
+        $this->connectWoo();
         $date = \Carbon\Carbon::today()->subDays(30);
         $files = DB::table('excels')
             ->select('name', 'title', 'note', 'status', 'created_at')
@@ -103,5 +115,11 @@ class WooController extends Controller
             }
             return redirect('/woo/production');
         }
+    }
+
+    public function connectWoo()
+    {
+        $string = 'dang connect woocommerce qua API';
+        \Log::info($string);
     }
 }
