@@ -1,0 +1,40 @@
+/*
+Version: 1.0
+*/
+#footer{
+    position:fixed;
+    left:0px;
+    bottom:0px;
+    height:30px;
+    width:100%;
+    background-color:#0e0e0e;
+}
+.css-info-store {
+    /*display: block;*/
+    /*width: 20%;*/
+    /*height: 30px;*/
+    /*float: right;*/
+    /*background-color: #fbeed5;*/
+    /*position: relative;*/
+
+
+
+}
+.css-detail-store {
+    /*text-align: center;*/
+    /*!*background: #00DD88;*!*/
+    /*!*background: -moz-linear-gradient(center top , #00DD88 0%, #00CC00 100%) repeat scroll 0 0 transparent;*!*/
+    /*!*border-radius: 30px 30px 30px 30px;*!*/
+    /*!*text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);*!*/
+    /*!*margin: 5px 0 10px 15px;*!*/
+    /*position: absolute;*/
+    /*!*right: -980px;*!*/
+    /*!*width: 200px;*!*/
+    /*!*height: 50px;*!*/
+    /*!*display: none;*!*/
+    /*z-index: 100;*/
+}
+
+.css-upload-file {
+    border: 1px solid #ccc !important;
+}

@@ -13,21 +13,7 @@
 </head>
 <body>
     <div id="loginbox">
-        @if (Session::has('error'))
-        <div class="card-body">
-            <div class="alert alert-danger" role="alert">
-                {{ Session('error') }}
-            </div>
-        </div>
-        @endif
-
-        @if (Session::has('success'))
-        <div class="card-body">
-            <div class="alert alert-success" role="alert">
-                {{ Session('success') }}
-            </div>
-        </div>
-        @endif           
+        @include('/admin/session')
         <form id="loginform" class="form-vertical" method="post" action="{{ url('admin') }}">
             @csrf
            <div class="control-group normal_text"> <h3><img src="{{ asset('source/img/logo.png') }}" alt="Logo" /></h3></div>
