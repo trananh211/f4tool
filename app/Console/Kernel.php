@@ -24,9 +24,14 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')
-        //          ->hourly();
-//        $schedule->call('App\Http\Controllers\WooController@connectWoo')->everyMinute();
+        /*Daily*/
+        /*quet store hang ngay xem co san pham moi khong*/
+//        $schedule->call('App\Http\Controllers\WooController@scanStoreList')
+//            ->dailyAt('00:30')->withoutOverlapping(10);
+        /*Hourly*/
+        /*luu san pham moi vao database*/
+//        $schedule->call('App\Http\Controllers\WooController@scanProductNew')
+//            ->everyFifteenMinutes()->between('00:10', '4:00')->withoutOverlapping(1);
     }
 
     /**
