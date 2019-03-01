@@ -19,6 +19,9 @@ use App\Jobs\GetTrackingNumberForDues;
 class WooController extends Controller
 {
 
+    public function testFunction(){
+        echo 'aaaa';
+    }
     /*woocommerce api*/
     public function getIndex()
     {

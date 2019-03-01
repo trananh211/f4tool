@@ -38,6 +38,9 @@ Route::group(['middleware' => ['auth']], function() {
     Route::get('/woo/production','WooController@getProduction');
     Route::post('/woo/excel-upload', 'WooController@excelUploadPost')->name('excel.upload.post');
 
+    Route::get('/woo/test-function','WooController@testFunction');
+
+
 });
 
 Route::get('auth/register','AdminController@register');
