@@ -20,7 +20,7 @@ class WooController extends Controller
 {
 
     public function testFunction(){
-        echo 'aaaa';
+        echo 'aa';
     }
     /*woocommerce api*/
     public function getIndex()
