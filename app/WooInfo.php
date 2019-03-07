@@ -58,6 +58,20 @@ class WooInfo extends Model
         return $return;
     }
 
+    public function testFunction()
+    {
+        $info = WooInfo::getSessionStore();
+        $woocommerce = WooInfo::getConnectStore($info['woo_link'], $info['consumer_key'], $info['consumer_secret']);
+        echo "<pre>";
+//        print_r($woocommerce->get('orders/3130'));
+        /*$data = [
+            'status' => 'processing'
+        ];
+
+        print_r($woocommerce->put('orders/3129', $data));*/
+        print_r($woocommerce->get('system_status/tools'));
+    }
+
     // Triển khai code logic
     public static function saveStore()
     {

@@ -44,11 +44,14 @@ Route::group(['middleware' => ['auth']], function() {
 });
 
 Route::get('/woo/test', function() {
-    $crawler = Goutte::request('GET', 'https://duckduckgo.com/html/?q=Laravel');
-    $crawler->filter('.result__title .result__a')->each(function ($node) {
-        dump($node->text());
-    });
-    return view('welcome');
+    $url = 'https://duckduckgo.com/html/?q=Laravel';
+    $url = 'https://www.amazon.com/s?bbn=16225018011&rh=n%3A7141123011%2Cn%3A16225018011%2Cn%3A1040660&pf_rd_i=16225018011&pf_rd_m=ATVPDKIKX0DER&pf_rd_p=e9a7a2cd-d373-460c-8c25-702b5e2acb03&pf_rd_r=MQZ6VQHV16S08X89JP6G&pf_rd_s=merchandised-search-4&pf_rd_t=101&ref=s9_acss_bw_cts_AEAISWF_T1_w';
+    $crawler = Goutte::request('GET', $url);
+//    $crawler->filter('.result__title .result__a')->each(function ($node) {
+//        dump($node->text());
+//    });
+    echo $crawler->html();
+//    return view('welcome');
 });
 
 Route::get('auth/register','AdminController@register');

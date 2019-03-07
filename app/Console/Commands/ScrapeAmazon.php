@@ -20,7 +20,7 @@ class ScrapeAmazon extends Command
      *
      * @var string
      */
-    protected $description = 'Amazon';
+    protected $description = 'Amazon Product';
 
     /**
      * Create a new command instance.
@@ -53,7 +53,7 @@ class ScrapeAmazon extends Command
         {
             $category = json_decode(json_encode($category),true)[0]; //it will return you data in array
             $url_shop = $category['url_shop'];
-            $this->log('1. ==> Scan collections Amazon <==');
+            $this->log('1. ==> Scan collections Amazon Product <==');
             $link = $this->amz.$url_shop;
             $this->log('2. Scan link : '.$link);
             $data = $this->scrape($link);
@@ -72,6 +72,28 @@ class ScrapeAmazon extends Command
     private static function log($str)
     {
         \Log::channel('daily')->info($str);
+    }
+
+    public function getClient()
+    {
+        $cookieJar = new \GuzzleHttp\Cookie\CookieJar(true);
+
+        $cookieJar->setCookie(new \GuzzleHttp\Cookie\SetCookie([
+            'Domain'  => $this->amz,
+//            'Name'    => $name,
+//            'Value'   => $value,
+            'Discard' => true
+        ]));
+
+        $client = new Client();
+        $guzzleclient = new \GuzzleHttp\Client([
+            'timeout' => 900,
+            'verify' => false,
+            'cookies' => $cookieJar
+        ]);
+        $client->setClient($guzzleclient);
+
+        return $client; //or do your normal client request here e.g $client->request('GET', $url);
     }
 
     /*Lưu link product vào database Amazon*/
@@ -149,7 +171,7 @@ class ScrapeAmazon extends Command
     {
         $data = array();
         $next_link = '';
-        $client = new Client();
+        $client = $this->getClient();
         $crawler = $client->request('GET', $url);
         //Kiểm tra xem đây có phải là link cuối cùng hay chưa
         if ($crawler->filter('ul.a-pagination li.a-last a')->count() > 0 ) {
@@ -160,8 +182,8 @@ class ScrapeAmazon extends Command
         }
 
         //Quét toan bộ danh sách sản phẩm
-        if ($crawler->filter('div.s-include-content-margin')->count() > 0) {
-            $crawler->filter('div.s-include-content-margin')->each(function ($node,$i) use (&$data, $crawler) {
+        if ($crawler->filter('.s-include-content-margin')->count() > 0) {
+            $crawler->filter('.s-include-content-margin')->each(function ($node,$i) use (&$data, $crawler) {
                 $link = $node->filter('a.a-link-normal')->attr('href'); // se bao gom ca ID cua Amazon
                 $title = trim($node->filter('.a-text-normal')->text());
                 if ($node->filter('span.a-size-base')->count() > 0)
