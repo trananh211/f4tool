@@ -49,12 +49,34 @@ class ScrapeAmazonReview extends Command
         \Log::channel('daily')->info($str);
     }
 
+    public function getClient()
+    {
+        $cookieJar = new \GuzzleHttp\Cookie\CookieJar(true);
+
+        $cookieJar->setCookie(new \GuzzleHttp\Cookie\SetCookie([
+            'Domain'  => $this->amz,
+//            'Name'    => $name,
+//            'Value'   => $value,
+            'Discard' => true
+        ]));
+
+        $client = new Client();
+        $guzzleclient = new \GuzzleHttp\Client([
+            'timeout' => 900,
+            'verify' => false,
+            'cookies' => $cookieJar
+        ]);
+        $client->setClient($guzzleclient);
+
+        return $client; //or do your normal client request here e.g $client->request('GET', $url);
+    }
+
     private function getReview()
     {
         $categories = DB::table('amz_products')
             ->select('id','amz_collection_id','category_id','link_page')
             ->where('status',0)
-            ->limit(1)
+            ->limit(5)
             ->orderBy('id','ASC')
             ->get()->toArray();
         $this->log('1. ==> Scan collections Amazon Review Product <==');
@@ -69,7 +91,6 @@ class ScrapeAmazonReview extends Command
                     $category->amz_collection_id,
                     $category->category_id
                 );
-                print_r($result);die();
                 if (sizeof($result['data']) > 0) {
                     $insert_review = array_merge($insert_review,$result['data']);
                     $insert_customer = array_merge($insert_customer,$result['customer']);
@@ -81,6 +102,14 @@ class ScrapeAmazonReview extends Command
                 }
                 else
                 {
+                    DB::table('amz_products')
+                        ->where('id',$category->id)
+                        ->update(
+                            [
+                                'link_page'=> $result['link'],
+                                'updated_at' => date("Y-m-d H:m:s")
+                            ]
+                        );
                     $str_update_link .=
                         'UPDATE amz_products SET (link_page = "'.$result['link'].'") WHERE id ='.$category->id.';';
                 }
@@ -93,9 +122,11 @@ class ScrapeAmazonReview extends Command
             }
             if ( sizeof($update_status) > 0)
             {
-                DB::table('amz_products')->where('id',$update_status)->update(['status'=> 1]);
+                DB::table('amz_products')->where('id',$update_status)
+                    ->update(
+                        ['status'=> 1, 'updated_at' => date("Y-m-d H:m:s")]
+                    );
             }
-            print_r($insert_review);
         }
         else
         {
@@ -108,8 +139,9 @@ class ScrapeAmazonReview extends Command
     private function scanReview($url,$collection_id, $category_id)
     {
         $next_link = '';
-        $client = new Client();
+        $client = $this->getClient();
         $crawler = $client->request('GET', $url);
+        $this->log('2.0 Scan link product for get review: '.$url);
         $update_link = array();
         //Kiểm tra xem đây có phải là link cuối cùng hay chưa
         if ($crawler->filter('ul.a-pagination li.a-last a')->count() > 0 ) {
@@ -125,27 +157,31 @@ class ScrapeAmazonReview extends Command
         if ($crawler->filter('div.review')->count() > 0)
         {
             $crawler->filter('div.review')->each(function ($node,$i) use (
-                $category_id, $collection_id, &$data, $crawler ) {
+                $category_id, $collection_id, &$data, &$customers, $crawler ) {
                 $star = (int) substr($node->filter('span.a-icon-alt')->text(), 0, 1);
-                if ($star >= 3)
+                if ($node->filterXpath('//span[@data-hook="review-body"]')->count() > 0) {
+                    $content = trim(htmlentities($node->filterXpath('//span[@data-hook="review-body"]')->text()));
+                }else {
+                    $content = '';
+                }
+                if ($star >= 3 && strlen($content) > 0)
                 {
                     $name = trim($node->filter('.a-profile-name')->text());
-                    $title = trim($node->filter('.review-title span.cr-original-review-content')->text());
-                    $content = trim($node->filter('.review-text-content')->text());
+                    $title = trim($node->filterXpath('//a[@data-hook="review-title"]/span')->text());
                     $data[$i] = [
+                        'amz_collection_id' => $collection_id,
+                        'category_id' => $category_id,
                         'star' => $star,
                         'title' => $title,
                         'content' => $content,
-                        'amz_collection_id' => $collection_id,
-                        'category_id' => $category_id,
                         'created_at' => date("Y-m-d H:m:s"),
                         'updated_at' => date("Y-m-d H:m:s")
                     ];
-//                    $customers[$i] = [
-//                        'name' => $name,
-//                        'created_at' => date("Y-m-d H:m:s"),
-//                        'updated_at' => date("Y-m-d H:m:s")
-//                    ];
+                    $customers[$i] = [
+                        'name' => $name,
+                        'created_at' => date("Y-m-d H:m:s"),
+                        'updated_at' => date("Y-m-d H:m:s")
+                    ];
                 }
             });
             $str_3 = '2.2 Had found '.sizeof($data).' reviews in this product.';
