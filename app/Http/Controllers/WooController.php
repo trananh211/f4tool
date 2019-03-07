@@ -19,6 +19,10 @@ use App\Jobs\GetTrackingNumberForDues;
 class WooController extends Controller
 {
 
+    public function testFunction(){
+        $woo_info = new WooInfo();
+        return $woo_info->testFunction();
+    }
     /*woocommerce api*/
     public function getIndex()
     {
@@ -65,8 +69,8 @@ class WooController extends Controller
     public function getOderStore()
     {
         $woo_info = new WooInfo();
-        $woo_info->getOrderNew();
-//        return $woo_info->getOderStore();
+        $woo_info->getOderStore();
+        return redirect()->back();
     }
 
     /*Ham cron job lay order luu vao database */
@@ -122,4 +126,26 @@ class WooController extends Controller
         $string = 'dang connect woocommerce qua API';
         \Log::info($string);
     }
+
+    /*
+     * Hàm thực hiện quét danh sách store woo hàng ngày.
+     * Trả về tổng sản phẩm mới trong ngày hôm trước được tạo mới và lưu vào cơ sở dữ liệu
+     * */
+    public function scanStoreList()
+    {
+        $woo_info = new WooInfo();
+        return $woo_info->scanStoreList();
+    }
+
+    /*
+     * Hàm thực hiện quét danh sách sản phẩm mới store woo hàng ngày.
+     * Trả về list sản phẩm mới trong ngày hôm trước và lưu vào cơ sở dữ liệu
+     * */
+    public function scanProductNew()
+    {
+        $woo_info = new WooInfo();
+        return $woo_info->scanProductNew();
+    }
+
+    /*Hàm thực hiện chức năng quét review và lưu vào database*/
 }

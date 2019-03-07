@@ -75,6 +75,9 @@
                             </table>
                         </div>
                     </div>
+                    <div>
+                        <a href="{{ url('woo/test-function') }}"><button>Test Function</button></a>
+                    </div>
                 </div>
 
             </div>

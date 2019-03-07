@@ -58,6 +58,20 @@ class WooInfo extends Model
         return $return;
     }
 
+    public function testFunction()
+    {
+        $info = WooInfo::getSessionStore();
+        $woocommerce = WooInfo::getConnectStore($info['woo_link'], $info['consumer_key'], $info['consumer_secret']);
+        echo "<pre>";
+//        print_r($woocommerce->get('orders/3130'));
+        /*$data = [
+            'status' => 'processing'
+        ];
+
+        print_r($woocommerce->put('orders/3129', $data));*/
+        print_r($woocommerce->get('system_status/tools'));
+    }
+
     // Triển khai code logic
     public static function saveStore()
     {
@@ -74,41 +88,6 @@ class WooInfo extends Model
         } else {
             \Session::flash('error', 'Error! Please try again an other time!');
         }
-    }
-
-
-    public function test(){
-        $woocommerce = new Client(
-            'http://localhost/wordpress/',
-            'ck_f679ccd69721c8194042e9fc85026121d72c4a71',
-            'cs_fbb978e46e5b08fbf5460656e16933498b767b43',
-            [
-                'wp_api' => true,
-                'version' => 'wc/v3',
-            ]
-        );
-//        echo "<pre>";
-        $data = [
-            'status' => 'processing',
-            'meta_data' => [
-                [
-                    "key" => "ywot_tracking_code",
-                    "value" => "LT123456789CN"
-                ],
-                [
-                    "key" => "ywot_pick_up_date",
-                    "value" => "2018-12-19"
-                ],
-                [
-                    "key" => "ywot_carrier_name",
-                    "value" => "https://t.17track.net/en#nums=LT075945772CN"
-                ]
-            ]
-        ];
-
-//        $woocommerce->put('orders/277', $data);
-//        print_r($woocommerce->get('orders'));
-//        die();
     }
 
     public function dashBoardStore($store_id, $url, $consumer_key, $consumer_secret)
@@ -250,4 +229,185 @@ class WooInfo extends Model
         Log::info($message);
     }
 
+    /*Hàm thực hiện lấy review và thêm vào product có sẵn*/
+    public function addReviewProduct($product_id)
+    {
+        $info = WooInfo::getSessionStore();
+        if ($info)
+        {
+            $text = str_random(12);
+            $woocommerce = WooInfo::getConnectStore($info['woo_link'], $info['consumer_key'], $info['consumer_secret']);
+            $data = [
+                'product_id' => $product_id,
+                'review' => 'Nice album! '.$text.'!!!',
+                'reviewer' => 'John Doe 2',
+                'reviewer_email' => 'john.doe@example.com',
+                'rating' => rand(4,5)
+            ];
+            $woocommerce->post('products/reviews', $data);
+            return redirect()->back()->with('success','Import review success fully'.$product_id);
+        }
+        else
+        {
+            return redirect()->back()->with('error', 'Get error! Please try again later.');
+        }
+    }
+
+    /*
+     * Hàm thực hiện quét danh sách store woo hàng ngày.
+     * Trả về tổng sản phẩm mới trong ngày hôm trước được tạo mới và lưu vào cơ sở dữ liệu
+     * */
+    public function scanStoreList()
+    {
+        $return = false;
+        $stores = DB::table('woo_infos')
+            ->select('id','woo_link','consumer_key','consumer_secret','external','grouped','simple','variable')
+            ->where('status', '1')
+            ->orderby('id','ASC')
+            ->get();
+        if (sizeof($stores) > 0) {
+            //connect to server, then get all information
+            foreach ($stores as $store){
+                $url = $store->woo_link;
+                $consumer_key = $store->consumer_key;
+                $consumer_secret = $store->consumer_secret;
+                $old_store = array(
+                    'external' => $store->external,
+                    'grouped' => $store->grouped,
+                    'simple' => $store->simple,
+                    'variable' => $store->variable
+                );
+                try{
+                    $woocommerce = WooInfo::getConnectStore($url, $consumer_key, $consumer_secret);
+                    $info = $woocommerce->get('reports/products/totals');
+                    $info = json_decode(json_encode($info),true); //it will return you data in array
+                    $new_store = array(
+                        'external' => $info[0]['total'],
+                        'grouped' => $info[1]['total'],
+                        'simple' => $info[2]['total'],
+                        'variable' => $info[3]['total']
+                    );
+                    //compare old data with new data
+                    if (count(array_diff_assoc($old_store,$new_store)) > 0)
+                    {
+                        $data = $new_store;
+                        $data['compare'] = 1;
+                        DB::table('woo_infos')->where('id', $store->id)->update($data);
+                    }
+                    $return = true;
+                }
+                catch (Exception $e) {
+                    $return = false;
+                    \Log::info($e->getMessage());
+                }
+
+            }
+        }
+        return $return;
+    }
+
+    /*
+     * Hàm thực hiện quét danh sách sản phẩm mới store woo hàng ngày.
+     * Trả về list sản phẩm mới trong ngày hôm trước và lưu vào cơ sở dữ liệu
+     * Hàm thực hiện 30p 1 lần
+     * */
+    public function scanProductNew()
+    {
+        $woo_info = new WooInfo();
+        $return = false;
+        $str = '';
+        $stores = DB::table('woo_infos')
+            ->select(
+                'id','woo_link','consumer_key','consumer_secret','external','grouped','simple','variable',
+                'try','compare'
+                )
+            ->where(['compare' => 1, 'status' => 1])
+            ->limit(1)
+            ->get()
+            ->toArray();
+        $stores = json_decode(json_encode($stores),true); //it will return you data in array
+        if (sizeof($stores) > 0)
+        {
+            $list_all_product = DB::table('products')
+                ->select('id','product_id')
+                ->where('woo_info_id',$stores[0]['id'])
+                ->get('id')
+                ->toArray();
+            $count_products = sizeof($list_all_product);
+            $compare_product = array();
+            $old_prd_array = array();
+            foreach ($list_all_product as $product) {
+                $prd_id = $product->product_id;
+                $old_prd_array[$product->id] = $prd_id;
+                if (!in_array( $prd_id, $compare_product)) {
+                    $compare_product[$product->id] = $prd_id;
+                }
+            }
+            //nếu xuất hiện sản phẩm bị trùng
+            if (sizeof($old_prd_array) != sizeof($compare_product) && $count_products > 0)
+            {
+                $del_data = array_keys(array_diff_assoc($old_prd_array,$compare_product));
+                $str .= "Store ".$stores[0]['woo_link']." có ".sizeof($del_data)." trùng nhau. Tool sẽ xóa các sản phẩm này.";
+                DB::table('products')->whereIn('id', $del_data)->delete();
+            }
+            else //mọi việc hoàn toàn bình thường
+            {
+                $all_product = $stores[0]['external']+$stores[0]['grouped']+$stores[0]['simple']+$stores[0]['variable'];
+                try {
+                    //nếu phát hiện có sản phẩm mới
+                    if ($all_product > $count_products)
+                    {
+                        $str .= "Store ".$stores[0]['woo_link']." phát hiện có sản phẩm mới.";
+                        $url = $stores[0]['woo_link'];
+                        $consumer_key = $stores[0]['consumer_key'];
+                        $consumer_secret = $stores[0]['consumer_secret'];
+                        $woocommerce = WooInfo::getConnectStore($url, $consumer_key, $consumer_secret);
+                        $conditions = [
+                            'status' => 'publish',
+                            'page' => $stores[0]['try'],
+                            'per_page' => 3,
+                        ];
+                        $lst_prd = $woocommerce->get('products',$conditions);
+                        $data_prd = array();
+                        foreach ($lst_prd as $new_product) {
+                            if (in_array($new_product->id, $old_prd_array)) {
+                                continue;
+                            }
+                            $data_prd[] = [
+                                'woo_info_id' => $stores[0]['id'],
+                                'product_id' => $new_product->id,
+                            ];
+                        }
+                        if (sizeof($data_prd) > 0)
+                        {
+                            DB::table('products')->insert($data_prd);
+                            $str .= "Thêm mới ".sizeof($data_prd)." vào database.";
+                        }
+                        $try = $stores[0]['try'] + 1;
+                        DB::table('woo_infos')
+                            ->where('id',$stores[0]['id'])
+                            ->update([ 'try' => $try ]);
+                    }
+                    else
+                    {
+                        if ($stores[0]['try'] != 1 || $stores[0]['compare'] != 0) {
+                            DB::table('woo_infos')
+                                ->where('id',$stores[0]['id'])
+                                ->update(['try' => 1, 'compare' => 0]);
+                        }
+                        $str .= "Store ".$stores[0]['woo_link']." chưa thêm sản phẩm mới. Tắt tìm kiếm sản phẩm mới.";
+                    }
+                    $return = true;
+                } catch (\Exception $e) {
+                    $return = false;
+                    \Log::info($e->getMessage());
+                }
+            }
+        } else {
+            /*Trường hợp 2: nếu người dùng xóa sản phẩm ở woo store*/
+            echo "kiem tra lại store";
+        }
+        \Log::info($str);
+        return $return;
+    }
 }
